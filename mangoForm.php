@@ -17,98 +17,89 @@ require 'src/SMTP.php';
 
 function validate($formData)
 {
+    // Initiate Array
+    $validationMSG = array(); // array to hold validation errors
 
-	// Initiate Array (will hold validation errors)
+    // what to validate (basics, i.e. required fields)
+    // key name => display name
+    $fields = [
+            'firstName' => [
+                'label' => 'First Name',
+                'rules' => 'required'
+            ],
+            'lastName' => [
+                'label' => 'Last Name',
+                'rules' => 'required'
+            ],
+            'companyName' => [
+                'label' => 'Company Name',
+                'rules' => 'required'
+            ],
+            'companyAddress' => [
+                'label' => 'Company Address',
+                'rules' => 'required'
+            ],
+            'city' => [
+                'label' => 'City',
+                'rules' => 'required'
+            ],
+            'state' => [
+                'label' => 'State',
+                'rules' => 'required'
+            ],
+            'zipcode' => [
+                'label' => 'Zipcode',
+                'rules' => 'required'
+            ],
+            'emailAddress' => [
+                'label' => 'Email',
+                'rules' => 'required|email'
+            ],
+            'phoneNumber' => [
+                'label' => 'Phone Number',
+                'rules' => 'required|phone'
+            ],
+        ];
 
-	$validationMSG = array();
+    //simple loop
+    foreach($fields as $fieldName => $args) {
+        $rules = explode('|', $args['rules']);
+        foreach($rules as $rule)
+        {
+            if($rule == 'required' && (!isset($formData[$fieldName]) || empty($formData[$fieldName])))
+            {
+                $validationMSG[$fieldName][] = sprintf('%s is a required field.', $args['label']);
+            }
 
-	$pname_exp = '/^[a-zA-Z0-9\_]{2,20}/';
+            if((isset($formData[$fieldName]) && $rule == 'email') && !empty($formData[$fieldName]) && !filter_var($formData[$fieldName], FILTER_VALIDATE_EMAIL))
+            {
+                $validationMSG[$fieldName][] = sprintf('%s must be a valid email.', $args['label']);
+            }
 
-	if (!isset($formData['firstName'])) {
-		$validationMSG['firstName'] = 'First Name is required.';
-	}elseif (!preg_match($pname_exp, $formData['firstName'])){
-		 $validationMSG['firstName'] = 'First Name is not valid.';
-	}
+            if((isset($formData[$fieldName]) && $rule == 'phone') && !empty($formData[$fieldName]) && !filter_var($formData[$fieldName], preg_match("/^[0-9]{3}-[0-9]{4}-[0-9]{4}$/", $formData[$fieldName])))
+            {
+                $validationMSG[$fieldName][] = sprintf('%s must be a phone number.', $args['label']);
+            }
+        }
+    }
+    //return messages
+    return $validationMSG;
 
-	// Validate lastName
-	if (!isset($formData['lastName'])) {
-		$validationMSG['lastName'] = 'Last Name is required.';
-	}
-
-	// Check RegEx for Last Name
-	elseif (!preg_match($pname_exp, $formData['lastName'])) {
-		$validationMSG['lastName'] = 'Last Name is not valid.';
-	}
-
-	// Validate companyName
-	if (!isset($formData['companyName'])) {
-		$validationMSG['companyName'] = 'Company Name is required.';
-	}
-
-	// Validate companyAddress
-	if (!isset($formData['companyAddress'])) {
-		$validationMSG['companyAddress'] = 'Company Address is required.';
-	}
-
-	// Validate state
-	if (!isset($formData['state'])) {
-		$validationMSG['state'] = 'State is required.';
-	}
-
-	// Validate city
-	if (!isset($formData['city'])) {
-		$validationMSG['city'] = 'City is required.';
-	}
-
-	// Validate Zipcode - If Field is Empty
-	if (!isset($formData['zipcode'])) {
-		$validationMSG['zipcode'] = 'Zipcode is required.';
-	}
-
-	// Validate emailAddress
-	if (!isset($formData['emailAddress'])) {
-		$validationMSG['emailAddress'] = 'Email Address is required.';
-	}
-
-	// Check if emailAddress is a valid email address
-	elseif (!filter_var($formData['emailAddress'], FILTER_VALIDATE_EMAIL)) {
-		$validationMSG['emailAddress'] = 'Email address is not valid.';
-	}
-
-	//Validate phoneNumber
-	if (!isset($formData['phoneNumber'])) {
-		$validationMSG['phoneNumber'] = 'Phone Number is required.';
-	}
-
-	//Validate phoneNumber
-	elseif (preg_match("/^[0-9]{3}-[0-9]{4}-[0-9]{4}$/", $formData['phoneNumber'])) {
-		$validationMSG['phoneNumber'] = 'Must be a valid phone number.';
-	}
-
-	// Validate message
-	if (!isset($formData['message'])) {
-		$validationMSG['message'] = 'Message is required.';
-	}
-
-	if (!empty($validationMSG)) {
-		return $validationMSG;		  
-	}	
-	else {
-		$captcha = checkCaptcha($formData['g-recaptcha-response']);
+    if (empty($validationMSG)) {
+        $captcha = checkCaptcha($formData['g-recaptcha-response']);
 		if(!$captcha['isSuccess']){
 		$validationMSG['captcha'] = 'ReCaptcha is required.';
-		
+		//return error messages
 	    return $validationMSG;
-		}
+    }
+    }
 
-		//End of Validation Function
-}
+//end of validate function
 }
 
 function checkCaptcha($g_recaptcha_response)
 {
 	$recaptcha_secret_key = 'SECRET_KEY_HERE';
-//	$recaptcha = new ReCaptchaReCaptcha($recaptcha_secret_key, new ReCaptchaRequestMethodCurlPost());
 	$recaptcha = new \ReCaptcha\ReCaptcha($recaptcha_secret_key);
 	$resp = $recaptcha->verify($g_recaptcha_response, $_SERVER['REMOTE_ADDR']);
 	return [
@@ -127,7 +118,7 @@ function sendMail($formData)
 	$mail->Host = 'smtp.server.com'; // Specify main and backup SMTP servers
 	$mail->SMTPAuth = true; // Enable SMTP authentication
 	$mail->Username = 'user@server.com'; // SMTP username
-	$mail->Password = 'PASSWORD_HERE'; // SMTP password
+	$mail->Password = 'SECRET_PASSWORD_HERE'; // SMTP password
 	$mail->SMTPSecure = 'ssl'; // Enable TLS encryption, `ssl` also accepted
 	$mail->Port = 465; // TCP port to connect to
 
@@ -164,7 +155,7 @@ function sendMail($formData)
 $response = [
     'success' => false,
     'errors' => [],
-  //  'message' => 'Error sending message'
+//  'message' => 'Error sending message'
 ];
 
 $formData = json_decode(file_get_contents("php://input"), true);

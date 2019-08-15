@@ -33,16 +33,16 @@ document.querySelector("#mangoForm").addEventListener("submit", function(e) {
    "content-type": "application/json; charset=utf-8"
   }
  });
-
+ 
  fetch(formRequest)
   .then(function(formResponse) {
    return formResponse.json();
   })
+  
   .then(function(data) {
    //handle server responses
    if (!data.success) {
     //handle error messages
-    //handle error message for firstName
     //console.log(data);
     if (data.errors.firstName && !document.querySelector('#firstName-group .help-block')) {
      document.getElementById("firstName-group").classList.add("has-error");
